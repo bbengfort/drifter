@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+# drifter
+# Executable script to run drifter commands
+#
+# Author:   Benjamin Bengfort <benjamin@bengfort.com>
+# Created:  Tue Jun 10 10:03:47 2014 -0400
+#
+# Copyright (C) 2014 Bengfort.com
+# For license information, see LICENSE.txt
+#
+# ID: drifter [] benjamin@bengfort.com $
+
+"""
+Executable script to run drifter commands
+"""
+
+##########################################################################
+## Imports
+##########################################################################
+
+import sys
+import argparse
+
+from drifter import *
+
+##########################################################################
+## Module Constants
+##########################################################################
+
+VERSION     = "1.0"
+DESCRIPTION = "Run drifter commands against the Phoenix-API"
+EPILOG      = "This software is for internal test use only."
+
+##########################################################################
+## Main Method and functionality
+##########################################################################
+
+def main(*argv):
+    """
+    Handles command line input and executes functionality.
+    """
+
+    parser = argparse.ArgumentParser(version=VERSION, description=DESCRIPTION, epilog=EPILOG)
+
+    args   = parser.parse_args()
+    parser.error("No functionality added yet.")
+
+if __name__ == '__main__':
+    main(*sys.argv)

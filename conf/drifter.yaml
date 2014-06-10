@@ -1,0 +1,12 @@
+# Configuration for the Drifter app
+
+# Runtime configuration
+debug:   false
+testing: false
+
+# Mongo configuration
+mongo:
+    database: cps
+    host: localhost
+    port: 27017
+    collection: products
