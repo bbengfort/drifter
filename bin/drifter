@@ -19,9 +19,9 @@ Executable script to run drifter commands
 ##########################################################################
 
 import sys
+import drifter
 import argparse
-
-from drifter import *
+import traceback
 
 ##########################################################################
 ## Module Constants
@@ -32,6 +32,13 @@ DESCRIPTION = "Run drifter commands against the Phoenix-API"
 EPILOG      = "This software is for internal test use only."
 
 ##########################################################################
+## Functional commands
+##########################################################################
+
+def show_config(args):
+    return str(drifter.settings)
+
+##########################################################################
 ## Main Method and functionality
 ##########################################################################
 
@@ -40,10 +47,27 @@ def main(*argv):
     Handles command line input and executes functionality.
     """
 
-    parser = argparse.ArgumentParser(version=VERSION, description=DESCRIPTION, epilog=EPILOG)
+    # The parent parser includes the traceback flag
+    pyparser   = argparse.ArgumentParser(add_help=False)
+    pyparser.add_argument('--traceback', action='store_true', default=False, help='On error, show the Python traceback')
 
-    args   = parser.parse_args()
-    parser.error("No functionality added yet.")
+    # Setup the main parser and subparsers
+    parser     = argparse.ArgumentParser(version=VERSION, description=DESCRIPTION, epilog=EPILOG)
+    subparsers = parser.add_subparsers(title='commands', description='Administrative commands for Drifter')
+
+    # Show config command
+    conf_parser =subparsers.add_parser('config', help='Show the current configuration of Drifter', parents=[pyparser])
+    conf_parser.set_defaults(func=show_config)
+
+    # Handle input from the command line
+    args = parser.parse_args()            # Parse the arguments
+    try:
+        msg = "%s\n" % args.func(args)    # Call the default function
+        parser.exit(0, msg)               # Exit clearnly with message
+    except Exception as e:
+        if hasattr(args, 'traceback') and args.traceback:
+            traceback.print_exc()
+        parser.error(str(e))              # Exit with error
 
 if __name__ == '__main__':
     main(*sys.argv)

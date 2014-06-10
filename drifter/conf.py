@@ -195,6 +195,8 @@ class DrifterConfiguration(Configuration):
     """
     debug           = True
     testing         = False
+    api_root        = "https://local.api.cobrain.com"
+    api_key         = os.environ.get('PHOENIX_API_KEY', None)
     mongo           = MongoConfiguration()
 
 ##########################################################################

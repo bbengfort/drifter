@@ -10,3 +10,8 @@ mongo:
     host: localhost
     port: 27017
     collection: products
+
+# Phoneix Configuration
+
+api_root: https://local.api.cobrain.com
+#api_key:  ""
