@@ -1,7 +1,7 @@
 # Configuration for the Drifter app
 
 # Runtime configuration
-debug:   false
+debug:   true
 testing: false
 
 # Mongo configuration
@@ -12,6 +12,5 @@ mongo:
     collection: products
 
 # Phoneix Configuration
-
 api_root: https://local.api.cobrain.com
-#api_key:  ""
+#api_key:

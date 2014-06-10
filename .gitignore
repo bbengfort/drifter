@@ -51,3 +51,5 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# Development configuration
+conf/drifter.yaml
