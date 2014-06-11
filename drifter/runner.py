@@ -19,9 +19,16 @@ Runs a drifter on a particular endpoint
 
 import sys
 import time
+import json
+import copy
+import socket
+import progressbar
+import numpy as np
 
 from drifter.api import Drifter
 from drifter.conf import settings
+from requests.exceptions import *
+from drifter.chart import chart_times
 
 ##########################################################################
 ## Decorator
@@ -53,8 +60,10 @@ class Runner(object):
     """
 
     def __init__(self, runs=100, **kwargs):
-        self.drifter  = Drifter(**kwargs)
         self.runs     = runs
+        self.wait     = kwargs.pop('wait', None)
+        self.drifter  = Drifter(**kwargs)
+        self.results  = {}
 
     @timeit
     def execute(self, method, *args, **kwargs):
@@ -62,28 +71,78 @@ class Runner(object):
         Runs the requested method the number of times, aggregating times
         """
         times = []
-        debug = kwargs.pop('debug') or settings.get('debug', False)
-        wait  = kwargs.pop('wait', None)
+        wait  = kwargs.pop('wait', self.wait)
+        label = kwargs.pop('label', "run #%i" % (len(self.results) + 1))
+        pbar  = progressbar.ProgressBar()
 
-        for idx in xrange(0, self.runs):
+        for idx in pbar(xrange(0, self.runs)):
             start = time.time()
-            data  = method(*args, **kwargs)
+
+            try:
+                data  = method(*args, **kwargs)
+            except (Timeout, socket.timeout):
+                times.append(-1)
+                continue
+
             finit = time.time()
             delta = finit - start
             times.append(delta * 1000)
 
-            if debug: sysout('.')
             if wait: time.sleep(wait)
 
-        if debug: sysout('\n')
+        self.results[label] = times
         return times
 
-    def categories_runner(self, **kwargs):
+    def categories_runner(self, label="GET /categories", **kwargs):
         """
         Runs the category endpoint for times
         """
         endpoint = self.drifter.build_endpoint('categories')
-        return self.execute(self.drifter.get, endpoint, **kwargs)
+        return self.execute(self.drifter.get, endpoint, label=label, **kwargs)
+
+    def brands_runner(self, label="GET /merchants", **kwargs):
+        """
+        Runs the brands endpoint for times
+        """
+        endpoint = self.drifter.build_endpoint('merchants')
+        return self.execute(self.drifter.get, endpoint, label=label, **kwargs)
+
+    def sizes_runner(self, label="GET /sizes", **kwargs):
+        """
+        Runs the sizes endpoint for times
+        """
+        endpoint = self.drifter.build_endpoint('sizes')
+        return self.execute(self.drifter.get, endpoint, label=label, **kwargs)
+
+    def display(self, title=None, **kwargs):
+        """
+        Graphs the results of the runner
+        """
+        title = title or "Drifter with %i Runs" % len(self.results)
+        chart_times(self.results, title=title, **kwargs)
+
+    def statistics(self):
+        """
+        Computes various statistics for the runner results
+        """
+        stats = {}
+        for label, times in self.results.items():
+            times = np.array(times)
+            stats[label] = {
+                'mean': np.mean(times),
+                'median': np.median(times),
+                'stddev': np.std(times),
+                'variance': np.var(times),
+                'max': np.amax(times),
+                'min': np.amin(times)
+            }
+        return stats
+
+    def dump(self, stream, **kwargs):
+        """
+        Dumps the results to JSON
+        """
+        json.dump(self.results, stream, **kwargs)
 
 if __name__ == '__main__':
     pass

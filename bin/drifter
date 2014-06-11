@@ -23,8 +23,6 @@ import drifter
 import argparse
 import traceback
 
-from drifter.chart import chart_times
-
 ##########################################################################
 ## Module Constants
 ##########################################################################
@@ -41,10 +39,27 @@ def show_config(args):
     return str(drifter.settings)
 
 def runner(args):
-    runner = drifter.Runner(args.runs)
-    times, time = runner.categories_runner(debug=True)
-    chart_times(times, title='Categories Endpoint Times')
-    return "Runner took %0.3f seconds to execute %i runs" % (time, args.runs)
+    print ("Executing drifter on the following endpoints:\n"
+           "    GET /categories\n"
+           "    GET /brands\n"
+           "    GET /sizes\n")
+
+    runner = drifter.Runner(args.runs, wait=args.wait)
+    _, timec = runner.categories_runner()
+    _, timeb = runner.brands_runner()
+    _, times = runner.sizes_runner()
+
+    print "\nDrifter complete!"
+
+    if args.outfile: runner.dump(args.outfile)
+
+    for label, stats in runner.statistics().items():
+        print "Statistics for the %s runner:" % label
+        for stat, val in stats.items():
+            print "    %s: %0.3f" % (stat.title(), val)
+
+    runner.display()
+    return "Runner took %0.3f seconds to execute %i runs" % (sum((timec, timeb, times)), args.runs*3)
 
 ##########################################################################
 ## Main Method and functionality
@@ -70,6 +85,8 @@ def main(*argv):
     # Runner command
     runner_parser = subparsers.add_parser('run', help='Run a command on the specified endpoints', parents=[pyparser])
     runner_parser.add_argument('-n', default=100, dest='runs', type=int, help='Number of runs to execute the runner on')
+    runner_parser.add_argument('-w', '--wait', default=None, type=float, help='Wait in seconds between each query.')
+    runner_parser.add_argument('-o', '--outfile', default=None, type=argparse.FileType('w'), help='Dump results data to a file.')
     runner_parser.set_defaults(func=runner)
 
     # Handle input from the command line

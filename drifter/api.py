@@ -49,8 +49,11 @@ class Drifter(object):
         return headers, payload
 
     def execute(self, method, url, **kwargs):
+        # Set arguments to pass to requests
         kwargs['headers'] = self.build_headers(kwargs.pop('headers', {}))
         kwargs['verify']  = kwargs.get('verify', False)
+        kwargs['timeout'] = kwargs.get('timeout', 30)
+
         response = method(url, **kwargs)
         if response.status_code == requests.codes.ok:
             return response.json()

@@ -24,17 +24,28 @@ import matplotlib.pyplot as plt
 ## Helper functions
 ##########################################################################
 
-def chart_times(times, title=None, saveto=None):
+def chart_times(runs, title=None, saveto=None, units='milliseconds'):
     """
-    Creates a simple line chart of times
+    Creates a simple line chart of times (expected is milliseconds) - pass
+    in a dictionary of multiple runs where the key is the label and the
+    value is the times in the units specified.
     """
-    fig, axe = plt.subplots(figsize=(9,7))
-    axe.plot(times, '-ro')
+    if not isinstance(runs, dict):
+        raise TypeError("Cannot chart a non-dictionary")
 
+    # Graph configuration
+    fig, axe = plt.subplots(figsize=(9,7))
     if title:
         axe.set_title(title)
-    plt.ylabel('milliseconds')
+    plt.ylabel(units)
     plt.xlabel('run index')
+
+    # Plotting each run
+    for label, times in runs.items():
+        axe.plot(times, '-o', label=label)
+
+    # Add the legend
+    axe.legend()
 
     if saveto:
         plt.savefig(saveto)
