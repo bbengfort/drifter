@@ -60,11 +60,7 @@ def runner(args):
 
     if args.outfile: runner.dump(args.outfile)
 
-    for label, stats in runner.statistics().items():
-        print "Statistics for the %s runner:" % label
-        for stat, val in stats.items():
-            print "    %s: %0.3f" % (stat.title(), val)
-
+    print runner.results.pprint()
     runner.display()
     return "Runner took %0.3f seconds to execute %i runs" % (sum(times), args.runs*len(ENDPOINTS))
 
@@ -85,13 +81,15 @@ def endpoints(args):
 
     if args.outfile: runner.dump(args.outfile)
 
-    for label, stats in runner.statistics().items():
-        print "Statistics for the %s runner:" % label
-        for stat, val in stats.items():
-            print "    %s: %0.3f" % (stat.title(), val)
-
+    print runner.results.pprint()
     runner.display()
     return "Runner took %0.3f seconds to execute %i runs" % (sum(times), args.runs*len(args.endpoint))
+
+def display(args):
+    stats = drifter.TimeSeries.load(args.stats[0])
+    print stats.pprint()
+    stats.display()
+    return ""
 
 ##########################################################################
 ## Main Method and functionality
@@ -105,9 +103,12 @@ def main(*argv):
     # The parent parser includes the traceback flag
     pyparser   = argparse.ArgumentParser(add_help=False)
     pyparser.add_argument('--traceback', action='store_true', default=False, help='On error, show the Python traceback')
-    pyparser.add_argument('-n', default=100, dest='runs', type=int, help='Number of runs to execute the runner on')
-    pyparser.add_argument('-w', '--wait', default=None, type=float, help='Wait in seconds between each query.')
-    pyparser.add_argument('-o', '--outfile', default=None, type=argparse.FileType('w'), help='Dump results data to a file.')
+
+    # The parent parser for drifter
+    dtparser   = argparse.ArgumentParser(add_help=False)
+    dtparser.add_argument('-n', default=100, dest='runs', type=int, help='Number of runs to execute the runner on')
+    dtparser.add_argument('-w', '--wait', default=None, type=float, help='Wait in seconds between each query.')
+    dtparser.add_argument('-o', '--outfile', default=None, type=argparse.FileType('w'), help='Dump results data to a file.')
 
     # Setup the main parser and subparsers
     parser     = argparse.ArgumentParser(version=VERSION, description=DESCRIPTION, epilog=EPILOG)
@@ -118,14 +119,19 @@ def main(*argv):
     conf_parser.set_defaults(func=show_config)
 
     # Runner command
-    runner_parser = subparsers.add_parser('run', help='Run load testing on all known endpoints', parents=[pyparser])
+    runner_parser = subparsers.add_parser('run', help='Run load testing on all known endpoints', parents=[pyparser, dtparser])
     runner_parser.set_defaults(func=runner)
 
     # Endpoint Tester
-    endpoint_parser = subparsers.add_parser('test', help='Run the tester against a specific endpoint', parents=[pyparser])
+    endpoint_parser = subparsers.add_parser('test', help='Run the tester against a specific endpoint', parents=[pyparser, dtparser])
     endpoint_parser.add_argument('-m', '--method', default='GET', type=str, choices=VERBS, help='Specify the HTTP method GET/POST etc.')
     endpoint_parser.add_argument('endpoint', type=str, choices=ENDPOINTS, nargs='+', help='Specify the endpoint to test.')
     endpoint_parser.set_defaults(func=endpoints)
+
+    # Display command
+    display_parser = subparsers.add_parser('display', help='Redisplay statistics from a previous run', parents=[pyparser])
+    display_parser.add_argument('stats', metavar='JSON', type=argparse.FileType('r'), nargs=1, help='JSON output of a drifter run.')
+    display_parser.set_defaults(func=display)
 
     # Handle input from the command line
     args = parser.parse_args()            # Parse the arguments

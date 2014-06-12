@@ -19,16 +19,14 @@ Runs a drifter on a particular endpoint
 
 import sys
 import time
-import json
 import copy
 import socket
 import progressbar
-import numpy as np
 
 from drifter.api import Drifter
 from drifter.conf import settings
 from requests.exceptions import *
-from drifter.chart import chart_times
+from drifter.stats import TimeSeries
 
 ##########################################################################
 ## Decorator
@@ -63,14 +61,13 @@ class Runner(object):
         self.runs     = runs
         self.wait     = kwargs.pop('wait', None)
         self.drifter  = Drifter(**kwargs)
-        self.results  = {}
+        self.results  = TimeSeries()
 
     @timeit
     def execute(self, method, *args, **kwargs):
         """
         Runs the requested method the number of times, aggregating times
         """
-        times = []
         wait  = kwargs.pop('wait', self.wait)
         label = kwargs.pop('label', "run #%i" % (len(self.results) + 1))
         pbar  = progressbar.ProgressBar()
@@ -81,17 +78,16 @@ class Runner(object):
             try:
                 data  = method(*args, **kwargs)
             except (Timeout, socket.timeout):
-                times.append(-1)
+                self.results.append(label, -1)
                 continue
 
             finit = time.time()
             delta = finit - start
-            times.append(delta * 1000)
+            self.results.append(label, delta * 1000)
 
             if wait: time.sleep(wait)
 
-        self.results[label] = times
-        return times
+        return self.results[label]
 
     def get_runner(self, endpoint, default=None):
         """
@@ -130,30 +126,19 @@ class Runner(object):
         Graphs the results of the runner
         """
         title = title or "Drifter with %i Runs" % len(self.results)
-        chart_times(self.results, title=title, **kwargs)
+        self.results.display(title=title, **kwargs)
 
     def statistics(self):
         """
         Computes various statistics for the runner results
         """
-        stats = {}
-        for label, times in self.results.items():
-            times = np.array(times)
-            stats[label] = {
-                'mean': np.mean(times),
-                'median': np.median(times),
-                'stddev': np.std(times),
-                'variance': np.var(times),
-                'max': np.amax(times),
-                'min': np.amin(times)
-            }
-        return stats
+        return self.results.statistics()
 
     def dump(self, stream, **kwargs):
         """
         Dumps the results to JSON
         """
-        json.dump(self.results, stream, **kwargs)
+        self.results.dump(stream, **kwargs)
 
 if __name__ == '__main__':
     pass

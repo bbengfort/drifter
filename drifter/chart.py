@@ -30,7 +30,7 @@ def chart_times(runs, title=None, saveto=None, units='milliseconds'):
     in a dictionary of multiple runs where the key is the label and the
     value is the times in the units specified.
     """
-    if not isinstance(runs, dict):
+    if not hasattr(runs, 'items') and not callable(runs.items):
         raise TypeError("Cannot chart a non-dictionary")
 
     # Graph configuration

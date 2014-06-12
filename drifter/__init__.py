@@ -19,3 +19,4 @@ A load tester for the Phoenix-API
 
 from .conf import settings
 from .runner import Runner
+from .stats import TimeSeries
