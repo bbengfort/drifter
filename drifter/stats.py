@@ -145,6 +145,19 @@ class TimeSeries(object):
             }
         return stats
 
+    def tabelize(self):
+        """
+        Returns a statistical table
+        """
+        output = []
+        for label, stats in self.statistics().items():
+            output.append("<tr>")
+            output.append("<td>%s</td>" % label)
+            for stat, val in stats.items():
+                output.append("<td>%0.3f</td>" % val)
+            output.append("</tr>")
+        return "\n".join(output)
+
     def pprint(self, title=None):
         """
         Pretty prints the statistics for the timeseries

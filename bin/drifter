@@ -80,7 +80,10 @@ def endpoints(args):
 
 def display(args):
     stats = drifter.TimeSeries.load(args.stats[0])
-    print stats.pprint()
+    if args.tabelize:
+        print stats.tabelize()
+    else:
+        print stats.pprint()
     stats.display()
     return ""
 
@@ -125,6 +128,7 @@ def main(*argv):
     # Display command
     display_parser = subparsers.add_parser('display', help='Redisplay statistics from a previous run', parents=[pyparser])
     display_parser.add_argument('stats', metavar='JSON', type=argparse.FileType('r'), nargs=1, help='JSON output of a drifter run.')
+    display_parser.add_argument('-t', '--tabelize', action='store_true', help='Write out HTML table of the results')
     display_parser.set_defaults(func=display)
 
     # Handle input from the command line
