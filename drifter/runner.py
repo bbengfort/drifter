@@ -48,6 +48,23 @@ def sysout(msg):
     sys.stdout.write(msg)
     sys.stdout.flush()
 
+def progress():
+    """
+    Constructs the progressbar widget and returns a function.
+    """
+    widgets = [
+        'Sent: ',
+        progressbar.Counter(),
+        ' requests (',
+        progressbar.Timer(),
+        ')'
+    ]
+    return progressbar.ProgressBar(widgets=widgets)
+
+def wait_for_return(msg="Hit Return to continue"):
+    keys = raw_input(msg)
+    return True
+
 ##########################################################################
 ## Runner Module
 ##########################################################################
@@ -72,7 +89,7 @@ class Runner(object):
         """
         wait  = kwargs.pop('wait', self.wait)
         label = kwargs.pop('label', "run #%i" % (len(self.results) + 1))
-        pbar  = progressbar.ProgressBar()
+        pbar  = progress()
 
         for idx in pbar(xrange(0, self.runs)):
             start = time.time()
@@ -123,12 +140,15 @@ class Runner(object):
         endpoint = self.drifter.build_endpoint('sizes')
         return self.execute(self.drifter.get, endpoint, label=label, **kwargs)
 
-    def run(self, endpoints, labels=None, **kwargs):
+    def run(self, endpoints, labels=None, prompt=False, **kwargs):
         """
         Runs a set of endpoints in a complete fashion.
         """
         times = []
         for idx, endpoint in enumerate(endpoints):
+            if prompt and idx > 0:
+                wait_for_return()
+
             action = self.get_runner(endpoint)
             if action is None:
                 raise Exception("Could not find runner for endpoint '%s'" % endpoint)
@@ -138,6 +158,7 @@ class Runner(object):
             else:
                 _, time = action(**kwargs)
             times.append(time)
+
         return times
 
     def display(self, title=None, **kwargs):

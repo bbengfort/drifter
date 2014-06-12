@@ -64,9 +64,10 @@ def endpoints(args):
               for idx, ep in enumerate(args.endpoint)]
     tests  = "\n".join(("    %s" % label for label in labels))
     print "Executing drifter on the following endpoints:\n%s" % tests
+    print
 
     runner = drifter.Runner(args.runs, wait=args.wait)
-    times  = runner.run(args.endpoint, labels=labels)
+    times  = runner.run(args.endpoint, labels=labels, prompt=args.prompt)
 
     print "\nDrifter complete!"
 
@@ -118,6 +119,7 @@ def main(*argv):
     endpoint_parser = subparsers.add_parser('test', help='Run the tester against a specific endpoint', parents=[pyparser, dtparser])
     endpoint_parser.add_argument('-m', '--method', default='GET', type=str, choices=VERBS, help='Specify the HTTP method GET/POST etc.')
     endpoint_parser.add_argument('endpoint', type=str, choices=ENDPOINTS, nargs='+', help='Specify the endpoint to test.')
+    endpoint_parser.add_argument('-p', '--prompt', action='store_true', help='prompt before each run of the test')
     endpoint_parser.set_defaults(func=endpoints)
 
     # Display command
