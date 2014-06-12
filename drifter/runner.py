@@ -63,6 +63,8 @@ class Runner(object):
         self.drifter  = Drifter(**kwargs)
         self.results  = TimeSeries()
 
+
+
     @timeit
     def execute(self, method, *args, **kwargs):
         """
@@ -120,6 +122,23 @@ class Runner(object):
         """
         endpoint = self.drifter.build_endpoint('sizes')
         return self.execute(self.drifter.get, endpoint, label=label, **kwargs)
+
+    def run(self, endpoints, labels=None, **kwargs):
+        """
+        Runs a set of endpoints in a complete fashion.
+        """
+        times = []
+        for idx, endpoint in enumerate(endpoints):
+            action = self.get_runner(endpoint)
+            if action is None:
+                raise Exception("Could not find runner for endpoint '%s'" % endpoint)
+
+            if labels:
+                _, time = action(label=labels[idx], **kwargs)
+            else:
+                _, time = action(**kwargs)
+            times.append(time)
+        return times
 
     def display(self, title=None, **kwargs):
         """

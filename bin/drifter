@@ -48,13 +48,7 @@ def runner(args):
            "    GET /%s\n") % ENDPOINTS
 
     runner = drifter.Runner(args.runs, wait=args.wait)
-    times  = []
-    for endpoint in ENDPOINTS:
-        action = runner.get_runner(endpoint)
-        if action is None:
-            raise Exception("Could not find runner for endpoint '%s'" % endpoint)
-        _, time = action()
-        times.append(time)
+    times  = runner.run(ENDPOINTS)
 
     print "\nDrifter complete!"
 
@@ -62,20 +56,17 @@ def runner(args):
 
     print runner.results.pprint()
     runner.display()
+
     return "Runner took %0.3f seconds to execute %i runs" % (sum(times), args.runs*len(ENDPOINTS))
 
 def endpoints(args):
-    tests = "\n".join(("    %s /%s" % (args.method, ep) for ep in args.endpoint))
+    labels = ["%s /%s run #%i" % (args.method, ep, idx)
+              for idx, ep in enumerate(args.endpoint)]
+    tests  = "\n".join(("    %s" % label for label in labels))
     print "Executing drifter on the following endpoints:\n%s" % tests
 
     runner = drifter.Runner(args.runs, wait=args.wait)
-    times  = []
-    for idx, endpoint in enumerate(args.endpoint):
-        action = runner.get_runner(endpoint)
-        if action is None:
-            raise Exception("Could not find runner for endpoint '%s'" % endpoint)
-        _, time = action(label="%s /%s %i" % (args.method, endpoint, idx))
-        times.append(time)
+    times  = runner.run(args.endpoint, labels=labels)
 
     print "\nDrifter complete!"
 
@@ -83,7 +74,8 @@ def endpoints(args):
 
     print runner.results.pprint()
     runner.display()
-    return "Runner took %0.3f seconds to execute %i runs" % (sum(times), args.runs*len(args.endpoint))
+    return "Runner took %0.3f seconds to execute %i runs" %  \
+                (sum(times), args.runs*len(args.endpoint))
 
 def display(args):
     stats = drifter.TimeSeries.load(args.stats[0])
