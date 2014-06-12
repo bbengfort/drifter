@@ -93,6 +93,17 @@ class Runner(object):
         self.results[label] = times
         return times
 
+    def get_runner(self, endpoint, default=None):
+        """
+        Returns the runner function for the specified endpoint.
+        """
+        action = "%s_runner" % endpoint
+        if hasattr(self, action):
+            action = getattr(self, action)
+            if callable(action):
+                return action
+        return default
+
     def categories_runner(self, label="GET /categories", **kwargs):
         """
         Runs the category endpoint for times

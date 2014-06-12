@@ -31,6 +31,9 @@ VERSION     = "1.0"
 DESCRIPTION = "Run drifter commands against the Phoenix-API"
 EPILOG      = "This software is for internal test use only."
 
+VERBS       = ('GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS')
+ENDPOINTS   = ('categories', 'brands', 'sizes')
+
 ##########################################################################
 ## Functional commands
 ##########################################################################
@@ -40,14 +43,18 @@ def show_config(args):
 
 def runner(args):
     print ("Executing drifter on the following endpoints:\n"
-           "    GET /categories\n"
-           "    GET /brands\n"
-           "    GET /sizes\n")
+           "    GET /%s\n"
+           "    GET /%s\n"
+           "    GET /%s\n") % ENDPOINTS
 
     runner = drifter.Runner(args.runs, wait=args.wait)
-    _, timec = runner.categories_runner()
-    _, timeb = runner.brands_runner()
-    _, times = runner.sizes_runner()
+    times  = []
+    for endpoint in ENDPOINTS:
+        action = runner.get_runner(endpoint)
+        if action is None:
+            raise Exception("Could not find runner for endpoint '%s'" % endpoint)
+        _, time = action()
+        times.append(time)
 
     print "\nDrifter complete!"
 
@@ -59,7 +66,32 @@ def runner(args):
             print "    %s: %0.3f" % (stat.title(), val)
 
     runner.display()
-    return "Runner took %0.3f seconds to execute %i runs" % (sum((timec, timeb, times)), args.runs*3)
+    return "Runner took %0.3f seconds to execute %i runs" % (sum(times), args.runs*len(ENDPOINTS))
+
+def endpoints(args):
+    tests = "\n".join(("    %s /%s" % (args.method, ep) for ep in args.endpoint))
+    print "Executing drifter on the following endpoints:\n%s" % tests
+
+    runner = drifter.Runner(args.runs, wait=args.wait)
+    times  = []
+    for idx, endpoint in enumerate(args.endpoint):
+        action = runner.get_runner(endpoint)
+        if action is None:
+            raise Exception("Could not find runner for endpoint '%s'" % endpoint)
+        _, time = action(label="%s /%s %i" % (args.method, endpoint, idx))
+        times.append(time)
+
+    print "\nDrifter complete!"
+
+    if args.outfile: runner.dump(args.outfile)
+
+    for label, stats in runner.statistics().items():
+        print "Statistics for the %s runner:" % label
+        for stat, val in stats.items():
+            print "    %s: %0.3f" % (stat.title(), val)
+
+    runner.display()
+    return "Runner took %0.3f seconds to execute %i runs" % (sum(times), args.runs*len(args.endpoint))
 
 ##########################################################################
 ## Main Method and functionality
@@ -73,6 +105,9 @@ def main(*argv):
     # The parent parser includes the traceback flag
     pyparser   = argparse.ArgumentParser(add_help=False)
     pyparser.add_argument('--traceback', action='store_true', default=False, help='On error, show the Python traceback')
+    pyparser.add_argument('-n', default=100, dest='runs', type=int, help='Number of runs to execute the runner on')
+    pyparser.add_argument('-w', '--wait', default=None, type=float, help='Wait in seconds between each query.')
+    pyparser.add_argument('-o', '--outfile', default=None, type=argparse.FileType('w'), help='Dump results data to a file.')
 
     # Setup the main parser and subparsers
     parser     = argparse.ArgumentParser(version=VERSION, description=DESCRIPTION, epilog=EPILOG)
@@ -83,11 +118,14 @@ def main(*argv):
     conf_parser.set_defaults(func=show_config)
 
     # Runner command
-    runner_parser = subparsers.add_parser('run', help='Run a command on the specified endpoints', parents=[pyparser])
-    runner_parser.add_argument('-n', default=100, dest='runs', type=int, help='Number of runs to execute the runner on')
-    runner_parser.add_argument('-w', '--wait', default=None, type=float, help='Wait in seconds between each query.')
-    runner_parser.add_argument('-o', '--outfile', default=None, type=argparse.FileType('w'), help='Dump results data to a file.')
+    runner_parser = subparsers.add_parser('run', help='Run load testing on all known endpoints', parents=[pyparser])
     runner_parser.set_defaults(func=runner)
+
+    # Endpoint Tester
+    endpoint_parser = subparsers.add_parser('test', help='Run the tester against a specific endpoint', parents=[pyparser])
+    endpoint_parser.add_argument('-m', '--method', default='GET', type=str, choices=VERBS, help='Specify the HTTP method GET/POST etc.')
+    endpoint_parser.add_argument('endpoint', type=str, choices=ENDPOINTS, nargs='+', help='Specify the endpoint to test.')
+    endpoint_parser.set_defaults(func=endpoints)
 
     # Handle input from the command line
     args = parser.parse_args()            # Parse the arguments
